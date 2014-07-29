@@ -2892,6 +2892,7 @@ function write_ws_xml_cols(ws, cols) {
 		var p = {min:i+1,max:i+1};
 		/* wch (chars), wpx (pixels) */
 		width = -1;
+		p.Style = cell.s;
 		if(col.wpx) width = px2char(col.wpx);
 		else if(col.wch) width = col.wch;
 		if(width > -1) { p.width = char2width(width); p.customWidth= 1; }
@@ -2971,7 +2972,7 @@ return function parse_ws_xml_data(sdata, s, opts, guess) {
 			d = x.substr(i);
 			p = {t:""};
 
-			if((cref=d.match(match_v))!== null) p.v=unescapexml(cref[1]);
+			o.s = cell.RawStyle !== undefined ? cell.RawStyle : get_cell_style(opts.cellXfs, cell, opts);
 			if(opts.cellFormula && (cref=d.match(match_f))!== null) p.f=unescapexml(cref[1]);
 
 			/* SCHEMA IS ACTUALLY INCORRECT HERE.  IF A CELL HAS NO T, EMIT "" */
@@ -4966,6 +4967,9 @@ function parse_zip(zip, opts) {
 		if(dir.vba.length > 0) out.vbaraw = getzipdata(zip,dir.vba[0],true);
 		else if(dir.defaults.bin === 'application/vnd.ms-office.vbaProject') out.vbaraw = getzipdata(zip,'xl/vbaProject.bin',true);
 	}
+
+	if(dir.style) out.RawStyle = getzipdata(zip, dir.style.replace(/^\//,''));
+
 	return out;
 }
 function add_rels(rels, rId, f, type, relobj) {
@@ -5049,7 +5053,7 @@ function write_zip(wb, opts) {
 	/* TODO: something more intelligent with styles */
 
 	f = "xl/styles." + wbext;
-	zip.file(f, write_sty(wb, f, opts));
+  zip.file(f, wb.RawStyle !== undefined ? wb.RawStyle : write_sty(wb, f, opts));
 	ct.styles.push(f);
 	add_rels(opts.wbrels, ++rId, "styles." + wbext, RELS.STY);
 
